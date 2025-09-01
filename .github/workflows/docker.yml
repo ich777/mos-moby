@@ -144,3 +144,7 @@ jobs:
         asset_path: ${{ env.BUILDDIR }}/mos-docker_${{ env.DOCKERD_V }}_amd64.deb.md5
         asset_name: mos-docker_${{ env.DOCKERD_V }}_amd64.deb.md5
         asset_content_type: text/plain
+
+
+    - name: Cleanup
+      run: rm -rf ${{ github.workspace }}/mos-moby
