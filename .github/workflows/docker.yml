@@ -92,7 +92,45 @@ jobs:
         cd $BUILDDIR
         chmod -R 755 $PACKAGEDIR
         dpkg-deb --build docker mos-docker_${DOCKERD_V#v}_amd64.deb
+        md5sum $BUILDDIR/mos-docker_${DOCKERD_V#v}_amd64.deb | awk '{print $2}' > $BUILDDIR/mos-docker_${DOCKERD_V#v}_amd64.deb.md5
 
-        echo "DOCKERD_V=$DOCKERD_V" >> $GITHUB_ENV
+        echo "DOCKERD_V=${DOCKERD_V#v}" >> $GITHUB_ENV
+        echo "BUILDDIR=$BUILDDIR" >> $GITHUB_ENV
 
         #rm -rf ${{ github.workspace }}
+
+    - name: Create Release
+      if: env.CREATE_RELEASE == 'true' && success()
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: docker-${{ env.DOCKERD_V }}
+        release_name: "docker-${{ env.DOCKERD_V }}"
+        body: |
+          Docker - docker-v${{ env.DOCKERD_V }}, custom package for MOS
+        draft: false
+        prerelease: false
+
+    - name: Upload deb to Release
+      if: env.CREATE_RELEASE == 'true' && success()
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./docker/mos-docker_${{ env.DOCKERD_V }}_amd64.deb
+        asset_name: mos-docker_${{ env.DOCKERD_V }}_amd64.deb
+        asset_content_type: application/vnd.debian.binary-package
+
+    - name: Upload md5 to Release
+      if: env.CREATE_RELEASE == 'true' && success()
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./docker/mos-docker_${{ env.DOCKERD_V }}_amd64.deb.md5
+        asset_name: mos-docker_${{ env.DOCKERD_V }}_amd64.deb.md5
+        asset_content_type: text/plain
