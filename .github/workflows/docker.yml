@@ -1,4 +1,4 @@
-name: Moby Compile
+name: Docker Compile
 
 on:
   # Allow to trigger action manually
@@ -15,7 +15,7 @@ jobs:
         fetch-depth: 1
 
     - name: Install dependencies
-      run: sudo apt-get -y install git make pkg-config libdevmapper-dev libseccomp-dev libbtrfs-dev jq gcc xz-utils
+      run: apt-get -y install git make pkg-config libdevmapper-dev libseccomp-dev libbtrfs-dev jq gcc xz-utils
 
     - name: Check versions
       run: |
@@ -94,10 +94,13 @@ jobs:
         dpkg-deb --build docker mos-docker_${DOCKERD_V#v}_amd64.deb
         md5sum $BUILDDIR/mos-docker_${DOCKERD_V#v}_amd64.deb | awk '{print $2}' > $BUILDDIR/mos-docker_${DOCKERD_V#v}_amd64.deb.md5
 
-        echo "DOCKERD_V=${DOCKERD_V#v}" >> $GITHUB_ENV
-        echo "BUILDDIR=$BUILDDIR" >> $GITHUB_ENV
-
-        #rm -rf ${{ github.workspace }}
+        echo "DOCKERD_V=${DOCKERD_V#v}
+        CONTAINERD_V=${CONTAINERD_V#v}
+        RUNC_V=${RUNC_V#v}
+        TINI_V=${TINI_V#v}
+        BUILDX_V=${BUILDX_V#v}
+        COMPOSE_V=${COMPOSE_V#v}
+        BUILDDIR=$BUILDDIR" >> $GITHUB_ENV
 
     - name: Create Release
       id: create_release
@@ -105,10 +108,22 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: docker-${{ env.DOCKERD_V }}
-        release_name: "docker-${{ env.DOCKERD_V }}"
+        tag_name: v${{ env.DOCKERD_V }}
+        release_name: "Docker v${{ env.DOCKERD_V }}"
         body: |
-          Docker - docker-v${{ env.DOCKERD_V }}, custom package for MOS
+          # Docker v${{ env.DOCKERD_V }}
+          
+          This is the custom Debian package from Docker for MOS
+
+          ### Package contents:
+          - [dockerd](https://github.com/moby/moby) v${{ env.DOCKERD_V }}
+          - [docker-proxy](https://github.com/moby/moby) v${{ env.DOCKERD_V }}
+          - [docker-cli](https://github.com/docker/cli) v${{ env.DOCKERD_V }}
+          - [containerd](https://github.com/containerd/containerd) v${{ env.CONTAINERD_V }}
+          - [runc](https://github.com/opencontainers/runc) v${{ env.RUNC_V }}
+          - [tini](https://github.com/krallin/tini) v${{ env.TINI_V }}
+          - [buildx](https://github.com/docker/buildx) v${{ env.BUILDX_V }}
+          - [compose](https://github.com/docker/compose) v${{ env.COMPOSE_V }}
         draft: false
         prerelease: false
 
@@ -131,3 +146,6 @@ jobs:
         asset_path: ${{ env.BUILDDIR }}/mos-docker_${{ env.DOCKERD_V }}_amd64.deb.md5
         asset_name: mos-docker_${{ env.DOCKERD_V }}_amd64.deb.md5
         asset_content_type: text/plain
+
+    - name: Cleanup
+      run: rm -rf ${{ github.workspace }}
