@@ -1,0 +1,213 @@
+#!/bin/sh
+set -e
+
+### BEGIN INIT INFO
+# Provides:           docker
+# Required-Start:     $syslog $remote_fs
+# Required-Stop:      $syslog $remote_fs
+# Default-Start:      2 3 4 5
+# Default-Stop:       0 1 6
+# Short-Description:  Create lightweight, portable, self-sufficient containers.
+# Description:
+#  Docker is an open-source project to easily create lightweight, portable,
+#  self-sufficient containers from any application. The same container that a
+#  developer builds and tests on a laptop can run at scale, in production, on
+#  VMs, bare metal, OpenStack clusters, public clouds and more.
+### END INIT INFO
+
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
+
+# MOS custom: Allow RAM disk for docker
+export DOCKER_RAMDISK=true
+
+BASE=docker
+
+# modify these in /etc/default/$BASE (/etc/default/docker)
+DOCKERD=/usr/sbin/dockerd
+# This is the pid file managed by docker itself
+DOCKER_PIDFILE=/var/run/$BASE.pid
+# This is the pid file created/managed by start-stop-daemon
+DOCKER_SSD_PIDFILE=/var/run/$BASE-ssd.pid
+DOCKER_LOGFILE=/var/log/$BASE.log
+DOCKER_OPTS=""
+DOCKER_DESC="Docker"
+
+# Get lsb functions
+. /lib/lsb/init-functions
+
+if [ -f /etc/default/$BASE ]; then
+	. /etc/default/$BASE
+fi
+
+# Check docker is present
+if [ ! -x $DOCKERD ]; then
+	log_failure_msg "$DOCKERD not present or not executable"
+	exit 1
+fi
+
+fail_unless_root() {
+	if [ "$(id -u)" != '0' ]; then
+		log_failure_msg "$DOCKER_DESC must be run as root"
+		exit 1
+	fi
+}
+
+cgroupfs_mount() {
+	# see also https://github.com/tianon/cgroupfs-mount/blob/master/cgroupfs-mount
+	if grep -v '^#' /etc/fstab | grep -q cgroup \
+		|| [ ! -e /proc/cgroups ] \
+		|| [ ! -d /sys/fs/cgroup ]; then
+		return
+	fi
+	if ! mountpoint -q /sys/fs/cgroup; then
+		mount -t tmpfs -o uid=0,gid=0,mode=0755 cgroup /sys/fs/cgroup
+	fi
+	(
+		cd /sys/fs/cgroup
+		for sys in $(awk '!/^#/ { if ($4 == 1) print $1 }' /proc/cgroups); do
+			mkdir -p $sys
+			if ! mountpoint -q $sys; then
+				if ! mount -n -t cgroup -o $sys cgroup $sys; then
+					rmdir $sys || true
+				fi
+			fi
+		done
+	)
+}
+
+# MOS Custom
+mos_start() {
+  DOCKER_JSON=$(jq -r '.' /boot/config/docker.json)
+  DOCKER_FILESYSTEM=$(echo $DOCKER_JSON | jq -r '.filesystem')
+  DOCKER_DIRECTORY=$(echo $DOCKER_JSON | jq -r '.directory')
+  if [ ! -z "$DOCKER_DIRECTORY" ]; then
+    # Safety check if DOCKER_DIRECTORY base directory exists
+    if [ ! -d $(echo $DOCKER_DIRECTORY | cut -d '/' -f 1-3) ] ; then
+      log_end_msg 1
+      exit 1
+    fi
+    if [ ! -d $DOCKER_DIRECTORY ] ; then
+      mkdir -p $DOCKER_DIRECTORY
+    fi
+  fi
+  if [ ! -d /var/lib/docker ] ; then
+    mkdir -p /var/lib/docker
+  fi
+  if ! findmnt /var/lib/docker >/dev/null 2>&1 ; then
+    mount --bind $DOCKER_DIRECTORY /var/lib/docker
+  fi
+  if [ ! -d $DOCKER_DIRECTORY/mos/icons ] ; then
+    mkdir -p $DOCKER_DIRECTORY/mos/icons
+  fi
+  if [ ! -f $DOCKER_DIRECTORY/mos/containers ] ; then
+    echo "[]" > $DOCKER_DIRECTORY/mos/containers
+  fi
+  if [ -z "$DOCKER_FILESYSTEM" ] ; then
+    DOCKER_OPTS="$DOCKER_OPTS --storage-driver=overlay2"
+  else
+    DOCKER_OPTS="$DOCKER_OPTS --storage-driver=$DOCKER_FILESYSTEM"
+  fi
+  if [ "$(jq -r '.interfaces.eth0.type' /boot/config/network.json)" = "bridged" ] ; then
+    iptables -N DOCKER-USER 2>/dev/null
+    iptables -C DOCKER-USER -i br0 -o eth0 -j ACCEPT 2>/dev/null || iptables -I DOCKER-USER -i br0 -o eth0 -j ACCEPT
+    iptables -C DOCKER-USER -i eth0 -o br0 -j ACCEPT 2>/dev/null || iptables -I DOCKER-USER -i eth0 -o br0 -j ACCEPT
+    iptables -C DOCKER-USER -i br0 -o br0 -j ACCEPT 2>/dev/null || iptables -I DOCKER-USER -i br0 -o br0 -j ACCEPT
+    iptables -C DOCKER-USER -i br0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || iptables -I DOCKER-USER -i br0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+    iptables -C DOCKER-USER -o br0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || iptables -I DOCKER-USER -o br0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+    #iptables -C DOCKER-USER -s 10.0.0.0/24 -j ACCEPT 2>/dev/null || iptables -I DOCKER-USER -s 10.0.0.0/24 -j ACCEPT
+    #iptables -C DOCKER-USER -d 10.0.0.0/24 -j ACCEPT 2>/dev/null || iptables -I DOCKER-USER -d 10.0.0.0/24 -j ACCEPT
+  fi
+  
+  if [ ! -d /var/www/docker_icons ] ; then
+    mkdir -p /var/www/docker_icons
+  fi
+  mount --bind $DOCKER_DIRECTORY/mos/icons /var/www/docker_icons 2>/dev/null
+  chmod -R 777 $DOCKER_DIRECTORY/mos/icons
+}
+
+# MOS custom
+mos_stop() {
+  umount -f /var/lib/docker 2>/dev/null
+  umount -f /var/www/docker_icons 2>/dev/null
+}
+
+case "$1" in
+	start)
+		fail_unless_root
+
+		# MOS custom: prevent mounting cgroup v1
+		# cgroupfs_mount
+
+		touch "$DOCKER_LOGFILE"
+		chgrp docker "$DOCKER_LOGFILE"
+
+		ulimit -n 1048576
+
+		# Having non-zero limits causes performance problems due to accounting overhead
+		# in the kernel. We recommend using cgroups to do container-local accounting.
+		if [ "$BASH" ]; then
+			ulimit -u unlimited
+		else
+			ulimit -p unlimited
+		fi
+
+		log_begin_msg "Starting $DOCKER_DESC: $BASE"
+		# MOS Custom
+		mos_start
+		start-stop-daemon --start --background \
+			--no-close \
+			--exec "$DOCKERD" \
+			--pidfile "$DOCKER_SSD_PIDFILE" \
+			--make-pidfile \
+			-- \
+			-p "$DOCKER_PIDFILE" \
+			$DOCKER_OPTS \
+			>> "$DOCKER_LOGFILE" 2>&1
+		log_end_msg $?
+		;;
+
+	stop)
+		fail_unless_root
+		if [ -f "$DOCKER_SSD_PIDFILE" ]; then
+			# MOS Custom
+			for container in $(docker ps -q); do
+				docker stop "$container" >/dev/null 2>&1 &
+			done
+			wait
+
+			log_begin_msg "Stopping $DOCKER_DESC: $BASE"
+			start-stop-daemon --stop --pidfile "$DOCKER_SSD_PIDFILE" --remove-pidfile --retry 10
+			log_end_msg $?
+			mos_stop
+		else
+			log_warning_msg "Docker already stopped - file $DOCKER_SSD_PIDFILE not found."
+		fi
+		;;
+
+	restart)
+		fail_unless_root
+		docker_pid=$(cat "$DOCKER_SSD_PIDFILE" 2> /dev/null)
+		[ -n "$docker_pid" ] \
+			&& ps -p $docker_pid > /dev/null 2>&1 \
+			&& $0 stop
+		$0 start
+		;;
+
+	force-reload)
+		fail_unless_root
+		$0 restart
+		;;
+
+	status)
+		if [ -f "$DOCKER_SSD_PIDFILE" ] ; then
+		  status_of_proc -p "$DOCKER_SSD_PIDFILE" "$DOCKERD" "$DOCKER_DESC"
+		else
+		  echo "Docker is not running."
+		fi
+		;;
+
+	*)
+		echo "Usage: service docker {start|stop|restart|status}"
+		exit 1
+		;;
+esac
