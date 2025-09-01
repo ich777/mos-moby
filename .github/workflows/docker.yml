@@ -46,7 +46,7 @@ jobs:
         cat > $PACKAGEDIR/DEBIAN/control << EOF
         Package: Docker
         Version: ${DOCKERD_V#v}
-        Architecture: x86_64
+        Architecture: amd64
         Maintainer: admin@minenet.at
         Description: Custom Docker build for MOS
         EOF
@@ -56,4 +56,4 @@ jobs:
 
         echo "DOCKERD_V=$DOCKERD_V" >> $GITHUB_ENV
 
-        rm -rf ${{ github.workspace }}
+        #rm -rf ${{ github.workspace }}
