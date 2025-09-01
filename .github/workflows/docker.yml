@@ -1,0 +1,54 @@
+name: Moby Compile
+
+on:
+  # Allow to trigger action manually
+  workflow_dispatch:
+
+jobs:
+  check_version:
+    runs-on: self-hosted
+
+    steps:
+    - name: Install dependencies
+      run: sudo apt-get -y install git make pkg-config libdevmapper-dev libseccomp-dev libbtrfs-dev jq gcc xz-utils
+
+    - name: Check versions
+      run: |
+        # Set Golang path
+        PATH=$PATH:/opt/golang/bin
+
+        # Get Docker version and create necessary directories
+        DOCKERD_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/moby/moby/releases/latest | jq -r '.tag_name')
+        BUILDDIR=$${{ github.workspace }}/$DOCKERD_V
+        PACKAGEDIR=$BUILDDIR/package
+        mkdir -p $PACKAGEDIR/usr/sbin
+        
+        # dockerd
+        cd $BUILDDIR
+        git clone --branch $DOCKERD_V --single-branch --depth 1 https://github.com/moby/moby.git
+        cd $BUILDDIR/moby
+        export DOCKER_BUILDTAGS="exclude_graphdriver_devicemapper exclude_graphdriver_aufs nosystemd"
+        ./hack/make.sh binary
+
+        cp $BUILDDIR/moby/bundles/binary-daemon/dockerd $PACKAGEDIR/usr/sbin/dockerd
+        cp $BUILDDIR/moby/bundles/binary-daemon/docker-proxy $PACKAGEDIR/usr/sbin/docker-proxy
+
+        ## docker-cli
+        #cd $BUILDDIR
+        #git clone --branch $DOCKERD_V --single-branch --depth 1 https://github.com/docker/cli
+        #mkdir -p /root/go/src/github.com/docker/cli
+        #cp -R $BUILDDIR/cli/* /root/go/src/github.com/docker/cli
+        #cd $BUILDDIR/cli
+        #make binary -j20
+        #cp $BUILDDIR/cli/build/docker-linux-amd64 $PACKAGEDIR/usr/bin/docker
+
+        cat > meinpaket/DEBIAN/control << EOF
+Package: Docker
+Version: ${DOCKER_V#v}
+Architecture: x86_64
+Maintainer: admin@minenet.at
+Description: Custom Docker build for MOS
+EOF
+
+        echo "DOCKERD_V=$DOCKERD_V" >> $GITHUB_ENV
+
