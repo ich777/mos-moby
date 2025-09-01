@@ -79,7 +79,7 @@ jobs:
         wget -O $PACKAGEDIR/usr/bin/docker-compose https://github.com/docker/compose/releases/download/$COMPOSE_V/docker-compose-linux-x86_64
 
         # Copy MOS docker init.d script
-        cp ${{ github.workspace }}/docker $PACKAGEDIR/etc/init.d/docker
+        cp ${{ github.workspace }}/etc/init.d/docker $PACKAGEDIR/etc/init.d/docker
 
         cat > $PACKAGEDIR/DEBIAN/control << EOF
         Package: Docker
