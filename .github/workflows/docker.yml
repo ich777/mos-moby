@@ -147,4 +147,5 @@ jobs:
 
 
     - name: Cleanup
+      if: always()
       run: rm -rf ${{ github.workspace }}/* ${{ github.workspace }}/.*
