@@ -9,6 +9,11 @@ jobs:
     runs-on: self-hosted
 
     steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 1
+
     - name: Install dependencies
       run: sudo apt-get -y install git make pkg-config libdevmapper-dev libseccomp-dev libbtrfs-dev jq gcc xz-utils
 
@@ -21,7 +26,7 @@ jobs:
         DOCKERD_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/moby/moby/releases/latest | jq -r '.tag_name')
         BUILDDIR=${{ github.workspace }}/$DOCKERD_V
         PACKAGEDIR=$BUILDDIR/docker
-        mkdir -p $PACKAGEDIR/usr/sbin $PACKAGEDIR/usr/bin/docker $PACKAGEDIR/DEBIAN
+        mkdir -p $PACKAGEDIR/usr/sbin $PACKAGEDIR/usr/bin $PACKAGEDIR/usr/lib/docker/cli-plugins $PACKAGEDIR/etc/init.d $PACKAGEDIR/DEBIAN
         
         # dockerd
         cd $BUILDDIR
@@ -44,6 +49,38 @@ jobs:
         make binary -j20
         cp $BUILDDIR/cli/build/docker-linux-amd64 $PACKAGEDIR/usr/bin/docker
 
+        # containerd
+        mkdir -p $BUILDDIR/containerd
+        cd $BUILDDIR
+        CONTAINERD_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/containerd/containerd/releases/latest | jq -r '.tag_name')
+        wget -O $BUILDDIR/containerd/containerd.tar.gz https://github.com/containerd/containerd/releases/download/$CONTAINERD_V/containerd-static-${CONTAINERD_V#v}-linux-amd64.tar.gz
+        tar -C $PACKAGEDIR/usr/ -xf $BUILDDIR/containerd/containerd.tar.gz
+
+        # runc
+        RUNC_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/opencontainers/runc/releases/latest | jq -r '.tag_name')
+        wget -O $PACKAGEDIR/usr/sbin/runc https://github.com/opencontainers/runc/releases/download/$RUNC_V/runc.amd64
+
+        # Add tini
+        TINI_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/krallin/tini/releases/latest | jq -r '.tag_name')
+        wget -O $PACKAGEDIR/usr/bin/tini-static https://github.com/krallin/tini/releases/download/$TINI_V/tini-static-amd64
+        cd $PACKAGEDIR/usr/bin
+        ln -sf /usr/bin/tini-static docker-init
+
+        # Add docker_buildx
+        cd $BUILDDIR
+        BUILDX_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/docker/buildx/releases/latest | jq -r '.tag_name')
+        git clone --branch $BUILDX_V --single-branch --depth 1 https://github.com/docker/buildx.git
+        cd buildx
+        make build -j20
+        cp $BUILDDIR/buildx/bin/build/docker-buildx $PACKAGEDIR/usr/lib/docker/cli-plugins/docker-buildx
+
+        # compose
+        COMPOSE_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/docker/compose/releases/latest | jq -r '.tag_name')
+        wget -O $PACKAGEDIR/usr/bin/docker-compose https://github.com/docker/compose/releases/download/$COMPOSE_V/docker-compose-linux-x86_64
+
+        # Copy MOS docker init.d script
+        cp ${{ github.workspace }}/docker $PACKAGEDIR/etc/init.d/docker
+
         cat > $PACKAGEDIR/DEBIAN/control << EOF
         Package: Docker
         Version: ${DOCKERD_V#v}
@@ -53,7 +90,8 @@ jobs:
         EOF
 
         cd $BUILDDIR
-        dpkg-deb --build docker
+        chmod -R 755 $PACKAGEDIR
+        dpkg-deb --build docker mos-docker_${DOCKERD_V#v}_amd64.deb
 
         echo "DOCKERD_V=$DOCKERD_V" >> $GITHUB_ENV
 
