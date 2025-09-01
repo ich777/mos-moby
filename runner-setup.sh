@@ -16,14 +16,14 @@ PATH=$PATH:/opt/golang/bin
 
 # Create necessary directories and download and extract GitHub Runner
 GH_RUNNER_V=2.328.0
-mkdir -p /root/runner/mos-moby /root/runner_workdir
+mkdir -p /root/runner/mos-moby /root/runner_workdir/mos-moby
 cd /root/runner/mos-moby
 curl -o actions-runner-linux-x64-${GH_RUNNER_V}.tar.gz -L https://github.com/actions/runner/releases/download/v${GH_RUNNER_V}/actions-runner-linux-x64-${GH_RUNNER_V}.tar.gz
 tar xzf ./actions-runner-linux-x64-${GH_RUNNER_V}.tar.gz
 rm -f actions-runner-linux-x64-${GH_RUNNER_V}.tar.gz
 
 # Make sure to replace <YOURTOKEN> with the runner token from GitHub
-RUNNER_ALLOW_RUNASROOT="1" ./config.sh --url https://github.com/ich777/mos-moby --name mos-docker --work /root/runner_workdir --unattended --token <YOURTOKEN>
+RUNNER_ALLOW_RUNASROOT="1" ./config.sh --url https://github.com/ich777/mos-moby --name mos-docker --work /root/runner_workdir/mos-moby --unattended --token <YOURTOKEN>
 
 # Copy over runner-mos_moby to /etc/init.d/ and make sure it's executable
 echo "/etc/init.d/runner-mos_moby start"  >> /etc/rc.local
