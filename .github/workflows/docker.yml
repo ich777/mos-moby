@@ -36,7 +36,7 @@ jobs:
 
         # docker-cli
         cd $BUILDDIR
-        GOPATH=${{ github.workspace }}
+        export GOPATH=${{ github.workspace }}
         git clone --branch $DOCKERD_V --single-branch --depth 1 https://github.com/docker/cli
         mkdir -p ${{ github.workspace }}/go/src/github.com/docker/cli
         cp -R $BUILDDIR/cli/* ${{ github.workspace }}/go/src/github.com/docker/cli
