@@ -92,7 +92,7 @@ jobs:
         cd $BUILDDIR
         chmod -R 755 $PACKAGEDIR
         dpkg-deb --build docker_package mos-docker_${DOCKERD_V#v}_amd64.deb
-        md5sum $BUILDDIR/mos-docker_${DOCKERD_V#v}_amd64.deb | awk '{print $2}' > $BUILDDIR/mos-docker_${DOCKERD_V#v}_amd64.deb.md5
+        md5sum $BUILDDIR/mos-docker_${DOCKERD_V#v}_amd64.deb | awk '{print $1}' > $BUILDDIR/mos-docker_${DOCKERD_V#v}_amd64.deb.md5
 
         echo "DOCKERD_V=${DOCKERD_V#v}
         CONTAINERD_V=${CONTAINERD_V#v}
