@@ -83,7 +83,7 @@ jobs:
 
         cat > $PACKAGEDIR/DEBIAN/control << EOF
         Package: Docker
-        Version: ${DOCKERD_V#v}
+        Version: ${DOCKERD_V#v}-mos
         Architecture: amd64
         Maintainer: admin@minenet.at
         Description: Custom Docker build for MOS
