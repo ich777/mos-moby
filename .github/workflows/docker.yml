@@ -20,8 +20,9 @@ jobs:
         # Get Docker version and create necessary directories
         DOCKERD_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/moby/moby/releases/latest | jq -r '.tag_name')
         BUILDDIR=${{ github.workspace }}/$DOCKERD_V
-        PACKAGEDIR=$BUILDDIR/package
+        PACKAGEDIR=$BUILDDIR/docker
         mkdir -p $PACKAGEDIR/usr/sbin
+        mkdir -p $PACKAGEDIR/DEBIAN
         
         # dockerd
         cd $BUILDDIR
@@ -42,7 +43,7 @@ jobs:
         #make binary -j20
         #cp $BUILDDIR/cli/build/docker-linux-amd64 $PACKAGEDIR/usr/bin/docker
 
-        cat > meinpaket/DEBIAN/control << EOF
+        cat > $PACKAGEDIR/DEBIAN/control << EOF
         Package: Docker
         Version: ${DOCKER_V#v}
         Architecture: x86_64
@@ -50,5 +51,9 @@ jobs:
         Description: Custom Docker build for MOS
         EOF
 
+        cd $BUILDDIR
+        dpkg-deb --build docker
+
         echo "DOCKERD_V=$DOCKERD_V" >> $GITHUB_ENV
 
+        rm -rf ${{ github.workspace }}
