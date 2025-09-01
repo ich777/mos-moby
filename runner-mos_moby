@@ -40,18 +40,16 @@ start() {
 
 stop() {
     echo -n "Stopping $NAME: "
-    start-stop-daemon --stop \
-        --quiet \
-        --pidfile $PIDFILE \
-        --user $USER
-    
-    if [ $? -eq 0 ]; then
-        rm -f $PIDFILE
+    if [ -f "$PIDFILE" ]; then
+        PID=$(cat "$PIDFILE")
+        PGID=$(ps -o pgid= -p "$PID" 2>/dev/null | tr -d ' ')
+        if [ -n "$PGID" ]; then
+            kill -SIGTERM -"$PGID" 2>/dev/null
+        fi
+        rm -f "$PIDFILE"
         echo "OK"
-        return 0
     else
-        echo "FAILED"
-        return 1
+        echo "No PID file found"
     fi
 }
 
