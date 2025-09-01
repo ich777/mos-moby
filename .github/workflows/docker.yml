@@ -43,12 +43,12 @@ jobs:
         #cp $BUILDDIR/cli/build/docker-linux-amd64 $PACKAGEDIR/usr/bin/docker
 
         cat > meinpaket/DEBIAN/control << EOF
-Package: Docker
-Version: ${DOCKER_V#v}
-Architecture: x86_64
-Maintainer: admin@minenet.at
-Description: Custom Docker build for MOS
-EOF
+        Package: Docker
+        Version: ${DOCKER_V#v}
+        Architecture: x86_64
+        Maintainer: admin@minenet.at
+        Description: Custom Docker build for MOS
+        EOF
 
         echo "DOCKERD_V=$DOCKERD_V" >> $GITHUB_ENV
 
