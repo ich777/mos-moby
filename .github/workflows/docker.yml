@@ -21,8 +21,7 @@ jobs:
         DOCKERD_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/moby/moby/releases/latest | jq -r '.tag_name')
         BUILDDIR=${{ github.workspace }}/$DOCKERD_V
         PACKAGEDIR=$BUILDDIR/docker
-        mkdir -p $PACKAGEDIR/usr/sbin
-        mkdir -p $PACKAGEDIR/DEBIAN
+        mkdir -p $PACKAGEDIR/usr/sbin $PACKAGEDIR/usr/bin/docker $PACKAGEDIR/DEBIAN
         
         # dockerd
         cd $BUILDDIR
@@ -37,6 +36,7 @@ jobs:
         # docker-cli
         cd $BUILDDIR
         export GOPATH=${{ github.workspace }}/go
+        export DISABLE_WARN_OUTSIDE_CONTAINER=1
         git clone --branch $DOCKERD_V --single-branch --depth 1 https://github.com/docker/cli
         mkdir -p ${{ github.workspace }}/go/src/github.com/docker/cli
         cp -R $BUILDDIR/cli/* ${{ github.workspace }}/go/src/github.com/docker/cli
