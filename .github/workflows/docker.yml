@@ -15,9 +15,9 @@ jobs:
         fetch-depth: 1
 
     - name: Install dependencies
-      run: apt-get -y install git make pkg-config libdevmapper-dev libseccomp-dev libbtrfs-dev jq gcc xz-utils
+      run: apt-get update && apt-get -y install git make pkg-config libdevmapper-dev libseccomp-dev libbtrfs-dev jq gcc xz-utils
 
-    - name: Check versions
+    - name: Compile Docker
       run: |
         # Set Golang path
         PATH=$PATH:/opt/golang/bin
