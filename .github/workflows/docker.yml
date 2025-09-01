@@ -19,7 +19,7 @@ jobs:
 
         # Get Docker version and create necessary directories
         DOCKERD_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/moby/moby/releases/latest | jq -r '.tag_name')
-        BUILDDIR=$${{ github.workspace }}/$DOCKERD_V
+        BUILDDIR=${{ github.workspace }}/$DOCKERD_V
         PACKAGEDIR=$BUILDDIR/package
         mkdir -p $PACKAGEDIR/usr/sbin
         
