@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  check_version:
+  build_docker:
     runs-on: self-hosted
 
     steps:
