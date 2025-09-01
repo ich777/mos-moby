@@ -23,7 +23,7 @@ tar xzf ./actions-runner-linux-x64-${GH_RUNNER_V}.tar.gz
 rm -f actions-runner-linux-x64-${GH_RUNNER_V}.tar.gz
 
 # Make sure to replace <YOURTOKEN> with the runner token from GitHub
-RUNNER_ALLOW_RUNASROOT="1" ./config.sh --url https://github.com/ich777/mos-moby --name mos-docker --work /root/runner_workdir/mos-moby --unattended --token <YOURTOKEN>
+RUNNER_ALLOW_RUNASROOT="1" ./config.sh --url https://github.com/ich777/mos-moby --name mos-docker --work /root/runner_workdir/mos-moby --ephemeral --unattended --token <YOURTOKEN>
 
 # Copy over runner-mos_moby to /etc/init.d/ and make sure it's executable
 echo "/etc/init.d/runner-mos_moby start"  >> /etc/rc.local
