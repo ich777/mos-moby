@@ -26,7 +26,7 @@ jobs:
         DOCKERD_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/moby/moby/releases/latest | jq -r '.tag_name')
         BUILDDIR=${{ github.workspace }}/$DOCKERD_V
         PACKAGEDIR=$BUILDDIR/docker_package
-        mkdir -p $PACKAGEDIR/usr/sbin $PACKAGEDIR/usr/bin $PACKAGEDIR/usr/lib/docker/cli-plugins $PACKAGEDIR/etc/init.d $PACKAGEDIR/DEBIAN  $PACKAGEDIR/usr/share/doc/mos-docker
+        mkdir -p $PACKAGEDIR/usr/sbin $PACKAGEDIR/usr/bin $PACKAGEDIR/usr/lib/docker/cli-plugins $PACKAGEDIR/etc/init.d $PACKAGEDIR/DEBIAN $PACKAGEDIR/usr/share/doc/mos-docker
 
         # Add initial copyright to package dir:
         echo -e "This package contains software under various licenses.\nSee the following files for details:\n" > $PACKAGEDIR/usr/share/doc/mos-docker/copyright
