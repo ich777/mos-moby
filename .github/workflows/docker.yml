@@ -31,6 +31,10 @@ jobs:
         # Add initial copyright to package dir:
         echo -e "This package contains software under various licenses.\nSee the following files for details:\n" > $PACKAGEDIR/usr/share/doc/mos-docker/copyright
 
+        # Add LICENSE from repo:
+        cp "${{ github.workspace }}/LICENSE" "$PACKAGEDIR/usr/share/doc/mos-docker/LICENSE"
+        echo -e "- LICENSE: License for packaging scripts" >> $PACKAGEDIR/usr/share/doc/mos-docker/copyright
+
         # Function to add licenses from repositories
         add_license_repo() {
           if [ -f "$(pwd)/NOTICE" ]; then
