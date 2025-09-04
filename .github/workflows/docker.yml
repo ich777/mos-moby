@@ -34,11 +34,11 @@ jobs:
         # Function to add licenses from repositories
         add_license_repo() {
           if [ -f "$(pwd)/NOTICE" ]; then
-            cp "$(pwd)/NOTICE" "$PACKAGEDIR/usr/share/doc/mos-docker/NOTICE-$component"
+            cp "$(pwd)/NOTICE" "$PACKAGEDIR/usr/share/doc/mos-docker/NOTICE-$1"
           fi
           if [ -f "$(pwd)/LICENSE" ]; then
-            cp "$(pwd)/LICENSE" "$PACKAGEDIR/usr/share/doc/mos-docker/LICENSE-${component}"
-            echo -e "- LICENSE: License for $NAME components" >> $PACKAGEDIR/usr/share/doc/mos-docker/copyright
+            cp "$(pwd)/LICENSE" "$PACKAGEDIR/usr/share/doc/mos-docker/LICENSE-$1"
+            echo -e "- LICENSE: License for $1 components" >> $PACKAGEDIR/usr/share/doc/mos-docker/copyright
           fi
         }
 
