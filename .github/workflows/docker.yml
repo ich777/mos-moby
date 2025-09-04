@@ -26,14 +26,38 @@ jobs:
         DOCKERD_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/moby/moby/releases/latest | jq -r '.tag_name')
         BUILDDIR=${{ github.workspace }}/$DOCKERD_V
         PACKAGEDIR=$BUILDDIR/docker_package
-        mkdir -p $PACKAGEDIR/usr/sbin $PACKAGEDIR/usr/bin $PACKAGEDIR/usr/lib/docker/cli-plugins $PACKAGEDIR/etc/init.d $PACKAGEDIR/DEBIAN
-        
+        mkdir -p $PACKAGEDIR/usr/sbin $PACKAGEDIR/usr/bin $PACKAGEDIR/usr/lib/docker/cli-plugins $PACKAGEDIR/etc/init.d $PACKAGEDIR/DEBIAN  $PACKAGEDIR/usr/share/doc/mos-docker
+
+        # Add initial copyright to package dir:
+        echo -e "This package contains software under various licenses.\nSee the following files for details:\n" > $PACKAGEDIR/usr/share/doc/mos-docker/copyright
+
+        # Function to add licenses from repositories
+        add_license_repo() {
+          if [ -f "$(pwd)/NOTICE" ]; then
+            cp "$(pwd)/NOTICE" "$PACKAGEDIR/usr/share/doc/mos-docker/NOTICE-$component"
+          fi
+          if [ -f "$(pwd)/LICENSE" ]; then
+            cp "$(pwd)/LICENSE" "$PACKAGEDIR/usr/share/doc/mos-docker/LICENSE-${component}"
+            echo -e "- LICENSE: License for $NAME components" >> $PACKAGEDIR/usr/share/doc/mos-docker/copyright
+          fi
+        }
+
+        # Function to add licenses from URL
+        add_license_url() {
+          if [ "$3" == "NOTICE" ] ; then
+            wget -O $PACKAGEDIR/usr/share/doc/mos-docker/NOTICE-$1 "$2/NOTICE"
+          fi
+          wget -O $PACKAGEDIR/usr/share/doc/mos-docker/LICENSE-$1 "$2/LICENSE"
+          echo -e "- LICENSE: License for $1 components" >> $PACKAGEDIR/usr/share/doc/mos-docker/copyright
+        }
+
         # dockerd
         cd $BUILDDIR
         git clone --branch $DOCKERD_V --single-branch --depth 1 https://github.com/moby/moby.git
         cd $BUILDDIR/moby
         export DOCKER_BUILDTAGS="exclude_graphdriver_devicemapper exclude_graphdriver_aufs nosystemd"
         ./hack/make.sh binary
+        add_license_repo "Docker"
 
         cp $BUILDDIR/moby/bundles/binary-daemon/dockerd $PACKAGEDIR/usr/sbin/dockerd
         cp $BUILDDIR/moby/bundles/binary-daemon/docker-proxy $PACKAGEDIR/usr/sbin/docker-proxy
@@ -48,6 +72,7 @@ jobs:
         cd $BUILDDIR/cli
         make binary -j20
         cp $BUILDDIR/cli/build/docker-linux-amd64 $PACKAGEDIR/usr/bin/docker
+        add_license_repo "docker-cli"
 
         # containerd
         mkdir -p $BUILDDIR/containerd
@@ -55,16 +80,19 @@ jobs:
         CONTAINERD_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/containerd/containerd/releases/latest | jq -r '.tag_name')
         wget -O $BUILDDIR/containerd/containerd.tar.gz https://github.com/containerd/containerd/releases/download/$CONTAINERD_V/containerd-static-${CONTAINERD_V#v}-linux-amd64.tar.gz
         tar -C $PACKAGEDIR/usr/ -xf $BUILDDIR/containerd/containerd.tar.gz
+        add_license_url "containerd" "https://raw.githubusercontent.com/containerd/containerd/main" "NOTICE"
 
         # runc
         RUNC_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/opencontainers/runc/releases/latest | jq -r '.tag_name')
         wget -O $PACKAGEDIR/usr/sbin/runc https://github.com/opencontainers/runc/releases/download/$RUNC_V/runc.amd64
+        add_license_url "runc" "https://raw.githubusercontent.com/opencontainers/runc/main" "NOTICE"
 
         # Add tini
         TINI_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/krallin/tini/releases/latest | jq -r '.tag_name')
         wget -O $PACKAGEDIR/usr/bin/tini-static https://github.com/krallin/tini/releases/download/$TINI_V/tini-static-amd64
         cd $PACKAGEDIR/usr/bin
         ln -sf /usr/bin/tini-static docker-init
+        add_license_url "tini" "https://raw.githubusercontent.com/krallin/tini/master"
 
         # Add docker_buildx
         cd $BUILDDIR
@@ -73,13 +101,18 @@ jobs:
         cd buildx
         make build -j20
         cp $BUILDDIR/buildx/bin/build/docker-buildx $PACKAGEDIR/usr/lib/docker/cli-plugins/docker-buildx
+        add_license_repo "buildx"
 
         # compose
         COMPOSE_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/docker/compose/releases/latest | jq -r '.tag_name')
         wget -O $PACKAGEDIR/usr/bin/docker-compose https://github.com/docker/compose/releases/download/$COMPOSE_V/docker-compose-linux-x86_64
+        add_license_url "compose" "https://raw.githubusercontent.com/docker/compose/main" "NOTICE"
 
         # Copy MOS docker init.d script
         cp ${{ github.workspace }}/etc/init.d/docker $PACKAGEDIR/etc/init.d/docker
+
+        # Add NOTICE line to copyright
+        echo "- NOTICE-*: Additional notices where applicable" >> $PACKAGEDIR/usr/share/doc/mos-docker/copyright
 
         cat > $PACKAGEDIR/DEBIAN/control << EOF
         Package: Docker
