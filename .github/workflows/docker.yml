@@ -42,7 +42,7 @@ jobs:
           fi
           if [ -f "$(pwd)/LICENSE" ]; then
             cp "$(pwd)/LICENSE" "$PACKAGEDIR/usr/share/doc/mos-docker/LICENSE-$1"
-            echo -e "- LICENSE: License for $1 components" >> $PACKAGEDIR/usr/share/doc/mos-docker/copyright
+            echo -e "- LICENSE-$1: License for $1 components" >> $PACKAGEDIR/usr/share/doc/mos-docker/copyright
           fi
         }
 
@@ -52,7 +52,7 @@ jobs:
             wget -O $PACKAGEDIR/usr/share/doc/mos-docker/NOTICE-$1 "$2/NOTICE"
           fi
           wget -O $PACKAGEDIR/usr/share/doc/mos-docker/LICENSE-$1 "$2/LICENSE"
-          echo -e "- LICENSE: License for $1 components" >> $PACKAGEDIR/usr/share/doc/mos-docker/copyright
+          echo -e "- LICENSE-$1: License for $1 components" >> $PACKAGEDIR/usr/share/doc/mos-docker/copyright
         }
 
         # dockerd
