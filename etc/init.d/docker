@@ -129,6 +129,7 @@ mos_start() {
 mos_stop() {
   umount -f /var/lib/docker 2>/dev/null
   umount -f /var/www/docker_icons 2>/dev/null
+  /etc/init.d/docker-watchdog stop 2>/dev/null
 }
 
 case "$1" in
