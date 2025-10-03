@@ -30,7 +30,7 @@ jobs:
 
         # Get Docker version and create necessary directories
         if [ ! -z "${{ github.event.inputs.docker_version }}" ] ; then
-          DOCKERD_V=${{ github.event.inputs.docker_version }}
+          DOCKERD_V=v${{ github.event.inputs.docker_version }}
         else
           DOCKERD_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/moby/moby/releases/latest | jq -r '.tag_name')
         fi
