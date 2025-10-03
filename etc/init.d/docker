@@ -29,7 +29,6 @@ DOCKER_PIDFILE=/var/run/$BASE.pid
 # This is the pid file created/managed by start-stop-daemon
 DOCKER_SSD_PIDFILE=/var/run/$BASE-ssd.pid
 DOCKER_LOGFILE=/var/log/$BASE.log
-DOCKER_OPTS=""
 DOCKER_DESC="Docker"
 
 # Get lsb functions
