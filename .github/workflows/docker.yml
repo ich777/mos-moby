@@ -3,6 +3,12 @@ name: Docker Compile
 on:
   # Allow to trigger action manually
   workflow_dispatch:
+    inputs:
+      docker_version:
+        description: 'Docker Version'
+        required: false
+        default: '28.4.0'
+        type: string
 
 jobs:
   build_docker:
@@ -23,7 +29,11 @@ jobs:
         PATH=$PATH:/opt/golang/bin
 
         # Get Docker version and create necessary directories
-        DOCKERD_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/moby/moby/releases/latest | jq -r '.tag_name')
+        if [ ! -z "${{ github.event.inputs.docker_version }}" ] ; then
+          DOCKERD_V=${{ github.event.inputs.docker_version }}
+        else
+          DOCKERD_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/moby/moby/releases/latest | jq -r '.tag_name')
+        fi
         BUILDDIR=${{ github.workspace }}/$DOCKERD_V
         PACKAGEDIR=$BUILDDIR/docker_package
         mkdir -p $PACKAGEDIR/usr/sbin $PACKAGEDIR/usr/bin $PACKAGEDIR/usr/lib/docker/cli-plugins $PACKAGEDIR/etc/init.d $PACKAGEDIR/DEBIAN $PACKAGEDIR/usr/share/doc/mos-docker
