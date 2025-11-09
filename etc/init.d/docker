@@ -110,14 +110,14 @@ mos_start() {
     DOCKER_OPTS="$DOCKER_OPTS --storage-driver=$DOCKER_FILESYSTEM"
   fi
 
-  if [ "$(jq -r '.interfaces.eth0.type' /boot/config/network.json)" = "bridged" ] ; then
-    iptables -N DOCKER-USER 2>/dev/null
-    iptables -C DOCKER-USER -i br0 -o eth0 -j ACCEPT 2>/dev/null || iptables -I DOCKER-USER -i br0 -o eth0 -j ACCEPT
-    iptables -C DOCKER-USER -i eth0 -o br0 -j ACCEPT 2>/dev/null || iptables -I DOCKER-USER -i eth0 -o br0 -j ACCEPT
-    iptables -C DOCKER-USER -i br0 -o br0 -j ACCEPT 2>/dev/null || iptables -I DOCKER-USER -i br0 -o br0 -j ACCEPT
-    iptables -C DOCKER-USER -i br0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || iptables -I DOCKER-USER -i br0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-    iptables -C DOCKER-USER -o br0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || iptables -I DOCKER-USER -o br0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-  fi
+#  if [ "$(jq -r '.interfaces.eth0.type' /boot/config/network.json)" = "bridged" ] ; then
+#    iptables -N DOCKER-USER 2>/dev/null
+#    iptables -C DOCKER-USER -i br0 -o eth0 -j ACCEPT 2>/dev/null || iptables -I DOCKER-USER -i br0 -o eth0 -j ACCEPT
+#    iptables -C DOCKER-USER -i eth0 -o br0 -j ACCEPT 2>/dev/null || iptables -I DOCKER-USER -i eth0 -o br0 -j ACCEPT
+#    iptables -C DOCKER-USER -i br0 -o br0 -j ACCEPT 2>/dev/null || iptables -I DOCKER-USER -i br0 -o br0 -j ACCEPT
+#    iptables -C DOCKER-USER -i br0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || iptables -I DOCKER-USER -i br0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+#    iptables -C DOCKER-USER -o br0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || iptables -I DOCKER-USER -o br0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+#  fi
   
   [ ! -d /var/www/docker_icons ] && \
     mkdir -p /var/www/docker_icons
