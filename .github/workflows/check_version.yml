@@ -26,7 +26,10 @@ jobs:
           echo "Couldn't get Version numbers"
           exit 1
         fi
-        
+
+        # Cleanup Docker version
+        DOCKERD_V=${DOCKERD_V#*-}
+
         if [ "${DOCKERD_V#v}" != "${AVAILABLE_V#v}" ]; then
           echo "Newer version found: v${DOCKERD_V#v}"
           curl -X POST \
