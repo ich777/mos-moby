@@ -100,8 +100,8 @@ mos_start() {
   if ! findmnt /var/lib/docker >/dev/null 2>&1 ; then
     mount --bind "$DOCKER_DIRECTORY" /var/lib/docker
   fi
-  [ ! -d "$DOCKER_DIRECTORY/mos/icons" ] && \
-    mkdir -p "$DOCKER_DIRECTORY/mos/icons"
+  [ ! -d "$DOCKER_DIRECTORY/mos/icons/groups" ] && \
+    mkdir -p "$DOCKER_DIRECTORY/mos/icons/groups"
   [ ! -f "$DOCKER_DIRECTORY/mos/containers" ] && \
     echo "[]" > "$DOCKER_DIRECTORY/mos/containers"
   if [ -z "$DOCKER_FILESYSTEM" ] ; then
