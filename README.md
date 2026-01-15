@@ -49,6 +49,6 @@ Each Docker-related component remains licensed under its respective upstream lic
 ## Third-Party Software
 
 This repository builds and packages third-party open-source software.
+Packaged components remain licensed under their original upstream licenses.
 
-Packaged components remain licensed under their original upstream licenses.  
-License texts are shipped with the generated packages.
+Refer to `THIRD_PARTY.md` for details.
