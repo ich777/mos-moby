@@ -108,13 +108,9 @@ jobs:
         add_license_url "tini" "https://raw.githubusercontent.com/krallin/tini/master"
 
         # Add docker_buildx
-        cd $BUILDDIR
         BUILDX_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/docker/buildx/releases/latest | jq -r '.tag_name')
-        git clone --branch $BUILDX_V --single-branch --depth 1 https://github.com/docker/buildx.git
-        cd buildx
-        make build -j20
-        cp $BUILDDIR/buildx/bin/build/docker-buildx $PACKAGEDIR/usr/lib/docker/cli-plugins/docker-buildx
-        add_license_repo "buildx"
+        wget -O $PACKAGEDIR/usr/lib/docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/${BUILDX_V}/buildx-${BUILDX_V}.linux-amd64
+        add_license_url "docker-buildx" "https://raw.githubusercontent.com/docker/buildx/master" "LICENSE"
 
         # compose
         COMPOSE_V=$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/docker/compose/releases/latest | jq -r '.tag_name')
@@ -194,7 +190,40 @@ jobs:
         asset_name: mos-docker_${{ env.DOCKERD_V }}_amd64.deb.md5
         asset_content_type: text/plain
 
+    - name: Set notification variables on success
+      if: success()
+      run: |
+        echo "NOTIFICATION_PRIORITY=0" >> $GITHUB_ENV
+        echo "NOTIFICATION_MESSAGE=Built Docker v${{ env.DOCKERD_V }}" >> $GITHUB_ENV
+    - name: Set notification variables on failure
+      if: failure()
+      run: |
+        echo "NOTIFICATION_PRIORITY=1" >> $GITHUB_ENV
+        echo "NOTIFICATION_MESSAGE=Failed to build Docker v${{ env.DOCKERD_V }}" >> $GITHUB_ENV
 
-    - name: Cleanup
+    - name: Cleanup & Notification
       if: always()
-      run: rm -rf ${{ github.workspace }}/* ${{ github.workspace }}/.*
+      run: |
+        # Discord notification function
+        discord_push_notification() {
+          if [ $3 -ge 1 ]; then
+            COLOR=16711680
+          else
+            COLOR=65280
+          fi
+
+          data=$(cat <<EOF
+        {
+          "embeds": [{
+            "title": "${1}",
+            "description": "${2}",
+            "color": ${COLOR}
+          }]
+        }
+        EOF
+        )
+          curl -H "Content-Type: application/json" -d "$data" "${{ secrets.DISCORD_WEBHOOK_URL }}"
+        }
+
+        discord_push_notification "${{ github.workflow }}" "${{ env.NOTIFICATION_MESSAGE }}" "${{ env.NOTIFICATION_PRIORITY }}"
+        rm -rf ${{ github.workspace }}/* ${{ github.workspace }}/.*
