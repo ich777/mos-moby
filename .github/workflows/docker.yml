@@ -11,7 +11,9 @@ on:
 
 jobs:
   build_docker:
-    runs-on: self-hosted
+    runs-on: [self-hosted, X64]
+    permissions:
+      contents: write
 
     steps:
     - name: Checkout repository
@@ -147,14 +149,11 @@ jobs:
         COMPOSE_V=${COMPOSE_V#v}
         BUILDDIR=$BUILDDIR" >> $GITHUB_ENV
 
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Create and Upload Release
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: v${{ env.DOCKERD_V }}
-        release_name: "Docker ${{ env.DOCKERD_V }}"
+        name: "Docker ${{ env.DOCKERD_V }}"
         body: |
           This is the custom Debian package from Docker for MOS
 
@@ -167,28 +166,12 @@ jobs:
           - [tini](https://github.com/krallin/tini) v${{ env.TINI_V }}
           - [buildx](https://github.com/docker/buildx) v${{ env.BUILDX_V }}
           - [compose](https://github.com/docker/compose) v${{ env.COMPOSE_V }}
-        draft: false
-        prerelease: false
-
-    - name: Upload deb to Release
-      uses: actions/upload-release-asset@v1
+        files: |
+          ${{ env.BUILDDIR }}/mos-docker*
+        overwrite_files: true
+        fail_on_unmatched_files: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ${{ env.BUILDDIR }}/mos-docker_${{ env.DOCKERD_V }}_amd64.deb
-        asset_name: mos-docker_${{ env.DOCKERD_V }}_amd64.deb
-        asset_content_type: application/vnd.debian.binary-package
-
-    - name: Upload md5 to Release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ${{ env.BUILDDIR }}/mos-docker_${{ env.DOCKERD_V }}_amd64.deb.md5
-        asset_name: mos-docker_${{ env.DOCKERD_V }}_amd64.deb.md5
-        asset_content_type: text/plain
 
     - name: Set notification variables on success
       if: success()
