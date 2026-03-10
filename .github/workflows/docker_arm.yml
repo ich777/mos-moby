@@ -1,4 +1,4 @@
-name: Docker Compile
+name: Docker Compile arm64
 
 on:
   # Allow to trigger action manually
@@ -11,7 +11,7 @@ on:
 
 jobs:
   build_docker:
-    runs-on: [self-hosted, X64]
+    runs-on: [self-hosted, ARM64]
     permissions:
       contents: write
 
