@@ -139,7 +139,11 @@ case "$1" in
       # MOS Custom
       /etc/init.d/docker-watchdog stop 2>/dev/null
       log_begin_msg "Stopping $DOCKER_DESC: $BASE"
-      for container in $(docker ps -q); do
+      for container in $(docker ps -q --filter "label=mos.backend=docker"); do
+        docker stop "$container" >/dev/null 2>&1 &
+      done
+      wait
+      for container in $(docker ps -q --filter "label=mos.backend=compose"); do
         docker stop "$container" >/dev/null 2>&1 &
       done
       wait
